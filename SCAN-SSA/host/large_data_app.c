@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
     Timer timer;
 
     printf("NR_TASKLETS\t%d\tBL\t%d\n", NR_TASKLETS, BL);
-
+    bool status = true;
     for(int rep = 0; rep < p.n_warmup + p.n_reps; rep++) {
         if(rep >= p.n_warmup)
             start(&timer, 0, rep - p.n_warmup);
@@ -101,8 +101,9 @@ int main(int argc, char **argv) {
             stop(&timer, 0);
 
         
-        unsigned int offset = 0;
+        unsigned int offset = 1;
         while (offset < input_size) {
+                offset = offset - 1 ;
                 printf("==============%d============\n",offset);
                 printf("Load input data\n");
                 if(rep >= p.n_warmup)
@@ -238,7 +239,9 @@ int main(int argc, char **argv) {
                 free(results_scan);
 
                 offset += chunk_size;
-            }
+                
+        }
+            
         
         
     }
@@ -256,18 +259,16 @@ int main(int argc, char **argv) {
     printf("DPU-CPU ");
     print(&timer, 5, p.n_reps);
 
+
 #if ENERGY
     double energy;
     DPU_ASSERT(dpu_probe_get(&probe, DPU_ENERGY, DPU_AVERAGE, &energy));
     printf("DPU Energy (J): %f\t", energy);
 #endif    
-
-    bool status = true;
     for (i = 0; i < input_size; i++) {
         if(C[i] != bufferC[i]) { 
-            printf("%d: %lu -- %lu\n", i, C[i], bufferC[i]);
-            status = false;
-            
+        printf("%d: %lu -- %lu\n", i, C[i], bufferC[i]);
+        status = false;
         }
     }
     if (status) {
