@@ -48,28 +48,28 @@ static T* C2;
 * @brief creates input arrays
 * @param nr_elements how many elements in input arrays
 */
-static void read_input(T* A, unsigned int nr_elements) {
-    //srand(0);
-    printf("nr_elements\t%u\t", nr_elements);
-    for (unsigned int i = 0; i < nr_elements; i++) {
+static void read_input(T* A, unsigned long long nr_elements) {
+    srand(0);
+    printf("nr_elements\t%llu\t", nr_elements);
+    for (unsigned long long i = 0; i < nr_elements; i++) {
         //A[i] = (T) (rand()) % 2;
-        A[i] = i;
+        A[i] = 1;
     }
 }
 
 /**
 * @brief compute output in the host
 */
-static void scan_host(T* C, T* A, unsigned int nr_elements) {
+static void scan_host(T* C, T* A, unsigned long long  nr_elements) {
     C[0] = A[0];
-    for (unsigned int i = 1; i < nr_elements; i++) {
+    for (unsigned long long i = 1; i < nr_elements; i++) {
         C[i] = C[i - 1] + A[i - 1];
     }
 }
 
 // Params ---------------------------------------------------------------------
 typedef struct Params {
-    unsigned int   input_size;
+    unsigned long input_size;
     int   n_warmup;
     int   n_reps;
     int   exp;
@@ -129,27 +129,26 @@ struct Params input_params(int argc, char **argv) {
 int main(int argc, char **argv) {
 
     struct Params p = input_params(argc, argv);
-
+    printf("p.input_size : %lu\n",p.input_size);
     unsigned int nr_of_dpus = 1;
     
-    unsigned int i = 0;
-    const unsigned int input_size =  p.input_size;
+    unsigned long long i = 0;
+    const unsigned long long  input_size = p.n_threads * p.input_size;
     assert(input_size % (p.n_threads) == 0 && "Input size!");
-
+    printf("input_size : %llu\n",input_size);
     // Input/output allocation
-    A = (T*)malloc(input_size * sizeof(T));
-    C = (T*)malloc(input_size * sizeof(T));
+    A = (T*)malloc(input_size * sizeof(T) * 2);
+    C = (T*)malloc(input_size * sizeof(T) * 2);
     T *bufferA = A;
-
+    
+    
     // Create an input file with arbitrary data.
     read_input(A, input_size);
-
     // Timer declaration
     Timer timer;
     float time_gpu = 0;
 
     thrust::omp::vector<T> h_output(input_size);
-
     // Loop over main kernel
     for(int rep = 0; rep < p.n_warmup + p.n_reps; rep++) {
 

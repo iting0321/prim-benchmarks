@@ -37,7 +37,7 @@ static void read_input(T* A, unsigned long long nr_elements, unsigned long long 
     srand(0);
     printf("nr_elements\t%llu\t", nr_elements);
     for (unsigned long long i = 0; i < nr_elements; i++) {
-        A[i] = (T)(10);
+        A[i] = (T)(1);
     }
     for (unsigned long long i = nr_elements; i < nr_elements_round; i++) {
         A[i] = 0;
@@ -54,7 +54,9 @@ static void scan_host(T* C, T* A, unsigned long long nr_elements) {
 
 // Main of the Host Application
 int main(int argc, char **argv) {
+    setbuf(stdout, NULL);
     struct Params p = input_params(argc, argv);
+    
     struct dpu_set_t dpu_set, dpu;
     uint32_t nr_of_dpus;
 
@@ -75,12 +77,12 @@ int main(int argc, char **argv) {
     
 
     const unsigned long long input_size = p.exp == 0 ? p.input_size * nr_of_dpus : p.input_size; 
-    printf("input_size : %lld \n",input_size);
+    //printf("input_size : %lld \n",input_size);
     const unsigned long long input_size_dpu_ = divceil(input_size, nr_of_dpus); //each dpu processed
-    printf("input_size_dpu_ : %lld \n",input_size_dpu_);
+    //printf("input_size_dpu_ : %lld \n",input_size_dpu_);
     const unsigned long long input_size_dpu_round = 
         (input_size_dpu_ % (NR_TASKLETS * REGS) != 0) ? roundup(input_size_dpu_, (NR_TASKLETS * REGS)) : input_size_dpu_; 
-    printf("input_size_dpu_round : %lld \n",input_size_dpu_round);
+    //printf("input_size_dpu_round : %lld \n",input_size_dpu_round);
 
     const unsigned long long  max_chunk_size =  nr_of_dpus * 60 * 1024 * 1024 / sizeof(T); 
 
@@ -95,7 +97,9 @@ int main(int argc, char **argv) {
     Timer timer;
 
     printf("NR_TASKLETS\t%d\tBL\t%d\n", NR_TASKLETS, BL);
-    
+    for(int j=0;j<7;++j){
+        init(&timer, j);
+    }
     for(int rep = 0; rep < p.n_warmup + p.n_reps; rep++) {
         if(rep >= p.n_warmup)
             start(&timer, 0, rep - p.n_warmup);
@@ -118,7 +122,7 @@ int main(int argc, char **argv) {
                 unsigned long long input_size_dpu = divceil(chunk_size, nr_of_dpus);
                 unsigned long long input_size_dpu_round_chunk = 
                     (input_size_dpu % (NR_TASKLETS * REGS) != 0) ? roundup(input_size_dpu, (NR_TASKLETS * REGS)) : input_size_dpu;
-                printf("input_size_dpu_round_chunk : %lld \n",input_size_dpu_round_chunk);
+                //printf("input_size_dpu_round_chunk : %llu \n",input_size_dpu_round_chunk);
 
                 dpu_arguments_t input_arguments = {input_size_dpu_round_chunk * sizeof(T), kernel, 0};
                 i = 0;
@@ -134,6 +138,7 @@ int main(int argc, char **argv) {
                 DPU_ASSERT(dpu_push_xfer(dpu_set, DPU_XFER_TO_DPU, DPU_MRAM_HEAP_POINTER_NAME, 0, input_size_dpu_round_chunk * sizeof(T), DPU_XFER_DEFAULT));
                 if(rep >= p.n_warmup)
                     stop(&timer, 1);
+                    
                 printf("Run program on DPU(s)...\n");
                 if(rep >= p.n_warmup) {
                     start(&timer, 2, rep - p.n_warmup);
@@ -195,16 +200,6 @@ int main(int argc, char **argv) {
                 }
                 
 
-                /**
-                T partial_sum = 0;
-                for (unsigned int i = 0; i < nr_of_dpus; i++) {
-                    T last_sum = results[i].t_count; // Last sum from the previous chunk
-                    results_scan[i] = partial_sum;  // Store the adjustment for DPU `i`
-                    partial_sum += last_sum;        // Update the partial sum for the next DPU
-                }
-                **/
-
-
                 kernel = 1;
                 dpu_arguments_t input_arguments_2[NR_DPUS];
                 for(i = 0; i < nr_of_dpus; i++) {
@@ -231,32 +226,26 @@ int main(int argc, char **argv) {
 
                 printf("Retrieve final results\n");
                 if(rep >= p.n_warmup){
-                    print(&timer, 5, rep - p.n_warmup);
+                    //print(&timer, 5, rep - p.n_warmup);
                     start(&timer, 5, rep - p.n_warmup);
-                    printf("end\n");
                 }
                 i = 0;
-                printf("aaaaaaaaaaaaaaaaaaaaa\n");
                 DPU_FOREACH(dpu_set, dpu, i) {
                     DPU_ASSERT(dpu_prepare_xfer(dpu, bufferC + offset + input_size_dpu_round_chunk * i));
                 }
-                printf("bbbbbbbbbbbbbbbbbbbbbbb\n");
                 DPU_ASSERT(dpu_push_xfer(dpu_set, DPU_XFER_FROM_DPU, DPU_MRAM_HEAP_POINTER_NAME, input_size_dpu_round_chunk * sizeof(T), input_size_dpu_round_chunk * sizeof(T), DPU_XFER_DEFAULT));
-                printf("cccccccccccccccccccccccccccccccccccc\n");
                 if(rep >= p.n_warmup)
                     stop(&timer, 5);
 
                 free(results_scan);
-                //printf("========%ld=========%ld=========\n",bufferC[offset],bufferC[offset-1]);
+
                 offset += chunk_size;
                 printf("offset : %lld , input_size : %lld\n",offset,input_size);
                 
         }
-            
-        
-        
+
     }
-    printf("Waiting for printing time............/n");
+
     printf("CPU ");
     print(&timer, 0, p.n_reps);
     printf("CPU-DPU ");
@@ -279,7 +268,7 @@ int main(int argc, char **argv) {
     bool status = true;
     for (i = 0; i < input_size; i++) {
         if(C[i] != bufferC[i]) { 
-        printf("%d: %lu -- %lu\n", i, C[i], bufferC[i]);
+        printf("%d: %llu -- %llu\n", i, C[i], bufferC[i]);
         status = false;
         }
     }
