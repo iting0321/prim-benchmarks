@@ -137,8 +137,8 @@ int main(int argc, char **argv) {
     assert(input_size % (p.n_threads) == 0 && "Input size!");
     printf("input_size : %llu\n",input_size);
     // Input/output allocation
-    A = (T*)malloc(input_size * sizeof(T) * 2);
-    C = (T*)malloc(input_size * sizeof(T) * 2);
+    A = (T*)malloc(input_size * sizeof(T) );
+    C = (T*)malloc(input_size * sizeof(T) );
     T *bufferA = A;
     
     
@@ -149,6 +149,7 @@ int main(int argc, char **argv) {
     float time_gpu = 0;
 
     thrust::omp::vector<T> h_output(input_size);
+    printf("h_output : %lu",&h_output.max_size());
     // Loop over main kernel
     for(int rep = 0; rep < p.n_warmup + p.n_reps; rep++) {
 

@@ -36,7 +36,7 @@ static void read_input(T* A, unsigned int nr_elements, unsigned int nr_elements_
     srand(0);
     printf("nr_elements\t%u\t", nr_elements);
     for (unsigned int i = 0; i < nr_elements; i++) {
-        A[i] = (T) (rand());
+        A[i] = (T) (1);
     }
     for (unsigned int i = nr_elements; i < nr_elements_round; i++) {
         A[i] = 0;

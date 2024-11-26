@@ -77,12 +77,12 @@ int main(int argc, char **argv) {
     
 
     const unsigned long long input_size = p.exp == 0 ? p.input_size * nr_of_dpus : p.input_size; 
-    //printf("input_size : %lld \n",input_size);
+    printf("input_size : %lld \n",input_size);
     const unsigned long long input_size_dpu_ = divceil(input_size, nr_of_dpus); //each dpu processed
-    //printf("input_size_dpu_ : %lld \n",input_size_dpu_);
+    printf("input_size_dpu_ : %lld \n",input_size_dpu_);
     const unsigned long long input_size_dpu_round = 
         (input_size_dpu_ % (NR_TASKLETS * REGS) != 0) ? roundup(input_size_dpu_, (NR_TASKLETS * REGS)) : input_size_dpu_; 
-    //printf("input_size_dpu_round : %lld \n",input_size_dpu_round);
+    printf("input_size_dpu_round : %lld \n",input_size_dpu_round);
 
     const unsigned long long  max_chunk_size =  nr_of_dpus * 60 * 1024 * 1024 / sizeof(T); 
 
@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
                 unsigned long long input_size_dpu = divceil(chunk_size, nr_of_dpus);
                 unsigned long long input_size_dpu_round_chunk = 
                     (input_size_dpu % (NR_TASKLETS * REGS) != 0) ? roundup(input_size_dpu, (NR_TASKLETS * REGS)) : input_size_dpu;
-                //printf("input_size_dpu_round_chunk : %llu \n",input_size_dpu_round_chunk);
+                printf("input_size_dpu_round_chunk : %llu \n",input_size_dpu_round_chunk);
 
                 dpu_arguments_t input_arguments = {input_size_dpu_round_chunk * sizeof(T), kernel, 0};
                 i = 0;

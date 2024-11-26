@@ -33,43 +33,56 @@
 
 #include "../../support/common.h"
 #include "../../support/timer.h"
-
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
 // Pointer declaration
 static T* A;
-static T* C;
-static T* C2;
+
 
 /**
 * @brief creates input arrays
 * @param nr_elements how many elements in input arrays
 */
-static void read_input(T* A, unsigned int nr_elements) {
-    //srand(0);
-    printf("nr_elements\t%u\t", nr_elements);
-    for (unsigned int i = 0; i < nr_elements; i++) {
-        //A[i] = (T) (rand()) % 2;
-        A[i] = i;
+static void read_input(T* A, unsigned long long nr_elements) {
+    srand(0);
+    printf("nr_elements : %llu\n", nr_elements);
+    
+    for (unsigned long long i = 0; i < nr_elements; i++) {
+        //printf("========%llu========",i);
+        A[i] = (T)(1);
     }
+   
 }
 
 /**
 * @brief compute output in the host
 */
-static T reduction_host(T* A, unsigned int nr_elements) {
-    T count = 0;
-    for (unsigned int i = 0; i < nr_elements; i++) {
-        count += A[i];
+static T reduction_host(T* A, unsigned long long  nr_elements) {
+    T tmp = 0;
+    for(int i=0;i<10;++i){
+        for (unsigned long long i = 0; i < nr_elements; i++) {
+            tmp += A[i];
+        }
     }
-    return count;
+    return tmp;
 }
 
+static T reduction_host_parallel(T* A, unsigned long long  nr_elements, int t) {
+    T tmp = 0;
+    omp_set_num_threads(t);
+    
+    
+    #pragma omp parallel for reduction(+:tmp)
+    for (unsigned long long i = 0; i < nr_elements; i++) {
+        tmp += A[i];
+    }
+    return tmp;
+}
 // Params ---------------------------------------------------------------------
 typedef struct Params {
-    unsigned int   input_size;
+    unsigned long long   input_size;
     int   n_warmup;
     int   n_reps;
     int   exp;
@@ -133,30 +146,30 @@ int main(int argc, char **argv) {
     unsigned int nr_of_dpus = 1;
     
     unsigned int i = 0;
-    const unsigned int input_size = p.exp == 0 ? p.input_size * nr_of_dpus : p.input_size;
+    //const unsigned int input_size = p.exp == 0 ? p.input_size * nr_of_dpus : p.input_size;
+    const unsigned long long input_size = 1280000000;
     assert(input_size % (p.n_threads) == 0 && "Input size!");
 
     // Input/output allocation
     A = (T*)malloc(input_size * sizeof(T));
-    C = (T*)malloc(input_size * sizeof(T));
-    C2 = (T*)malloc(input_size * sizeof(T));
-    T *bufferA = A;
-    T *bufferC = C2;
-	
-    T count = 0;
-    T count_host = 0;
+    if( A == NULL ) {
+    // 無法取得記憶體空間
+    fprintf(stderr, "Error: unable to allocate required memory\n");
+    return 1;
+  }
 
     // Create an input file with arbitrary data.
     read_input(A, input_size);
-
+    // printf("read input finish\n");
     // Timer declaration
     Timer timer;
     float time_gpu = 0;
-
-    thrust::omp::vector<T> h_output(input_size);
-
+    T count ;
+    T count_host ;
     // Loop over main kernel
     for(int rep = 0; rep < p.n_warmup + p.n_reps; rep++) {
+        count = 0;
+        count_host = 0;
 
         // Compute output on CPU (performance comparison and verification purposes)
         if(rep >= p.n_warmup)
@@ -165,18 +178,14 @@ int main(int argc, char **argv) {
         if(rep >= p.n_warmup)
             stop(&timer, 0);
 
-        thrust::omp::vector<T> d_input(input_size);
-        memcpy(thrust::raw_pointer_cast(&d_input[0]), A, input_size * sizeof(T));
-
-        omp_set_num_threads(p.n_threads);
-
         if(rep >= p.n_warmup)
             start(&timer, 1, rep - p.n_warmup);
-        count = thrust::reduce(thrust::omp::par, d_input.begin(), d_input.end());
+        for(int i=0;i<10;++i){
+            count += reduction_host_parallel(A, input_size , p.n_threads);
+        }
         if(rep >= p.n_warmup)
             stop(&timer, 1);
-        h_output = d_input;
-
+        // printf("count_final_result : %llu\n",count);
     }
 
     // Print timing results
@@ -184,12 +193,12 @@ int main(int argc, char **argv) {
     print(&timer, 0, p.n_reps);
     printf("Kernel ");
     print(&timer, 1, p.n_reps);
-
+    printf("%llu -- %llu\n", count, count_host);
     // Check output
     bool status = true;
     if(count_host != count){ 
         status = false;
-        printf("%lu -- %lu\n", count, count_host);
+        printf("%llu -- %llu\n", count, count_host);
     }
 	if (status) {
         printf("[" ANSI_COLOR_GREEN "OK" ANSI_COLOR_RESET "] Outputs are equal\n");
@@ -199,8 +208,7 @@ int main(int argc, char **argv) {
 
     // Deallocation
     free(A);
-    free(C);
-    free(C2);
+   
 	
     return 0;
 }

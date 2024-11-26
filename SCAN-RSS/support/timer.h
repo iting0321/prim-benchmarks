@@ -39,14 +39,16 @@ typedef struct Timer{
 
     struct timeval startTime[7];
     struct timeval stopTime[7];
-    double         time[7];
+    double  time[7];
 
 }Timer;
-
+void init(Timer *timer,int i){
+    timer->time[i] = 0.0;
+}
 void start(Timer *timer, int i, int rep) {
-    if(rep == 0) {
-        timer->time[i] = 0.0;
-    }
+    // if(rep == 0) {
+    //     timer->time[i] = 0.0;
+    // }
     gettimeofday(&timer->startTime[i], NULL);
 }
 

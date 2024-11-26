@@ -4,7 +4,7 @@
 #include "common.h"
 
 typedef struct Params {
-    unsigned int   input_size;
+    unsigned long long   input_size;
     int   n_warmup;
     int   n_reps;
     int  exp;
