@@ -73,12 +73,14 @@ int main(int argc, char **argv) {
     unsigned int i = 0;
     T accum = 0;
 
-    const unsigned long long input_size = p.exp == 0 ? p.input_size * nr_of_dpus : p.input_size; // Total input size (weak or strong scaling)
+    // const unsigned long long input_size = p.exp == 0 ? p.input_size * nr_of_dpus : p.input_size; // Total input size (weak or strong scaling)
+    const unsigned long long input_size = 12800000000;
     const unsigned long long input_size_dpu_ = divceil(input_size, nr_of_dpus); // Input size per DPU (max.)
     const unsigned long long input_size_dpu_round = 
         (input_size_dpu_ % (NR_TASKLETS * REGS) != 0) ? roundup(input_size_dpu_, (NR_TASKLETS * REGS)) : input_size_dpu_; // Input size per DPU (max.), 8-byte aligned
 
-    const unsigned long long  max_chunk_size =  nr_of_dpus * 60 * 1024 * 1024 / sizeof(T); 
+    // const unsigned long long  max_chunk_size =  nr_of_dpus * 60 * 1024 * 1024 / sizeof(T); 
+    const unsigned long long  max_chunk_size = 3670016 * nr_of_dpus;
     printf("input_size : %llu \n",input_size);
     printf("input_size_dpu_ : %llu \n",input_size_dpu_);
     printf("input_size_dpu_round : %llu \n",input_size_dpu_round);

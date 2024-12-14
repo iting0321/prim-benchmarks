@@ -42,11 +42,13 @@ typedef struct Timer{
     double         time[7];
 
 }Timer;
-
+void init(Timer *timer,int i){
+    timer->time[i] = 0.0;
+}
 void start(Timer *timer, int i, int rep) {
-    if(rep == 0) {
-        timer->time[i] = 0.0;
-    }
+    // if(rep == 0) {
+    //     timer->time[i] = 0.0;
+    // }
     gettimeofday(&timer->startTime[i], NULL);
 }
 
@@ -54,6 +56,7 @@ void stop(Timer *timer, int i) {
     gettimeofday(&timer->stopTime[i], NULL);
     timer->time[i] += (timer->stopTime[i].tv_sec - timer->startTime[i].tv_sec) * 1000000.0 +
                       (timer->stopTime[i].tv_usec - timer->startTime[i].tv_usec);
+    if(i == 5) printf("dpu-cpu %f\n",timer->time[5]);
 }
 
 void print(Timer *timer, int i, int REP) { printf("Time (ms): %f\t", timer->time[i] / (1000 * REP)); }
